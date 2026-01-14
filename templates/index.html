@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>كشف الأخبار المزيفة - AI</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Cairo", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+
+      .navbar-brand {
+        font-weight: bold;
+        font-size: 1.5rem;
+      }
+
+      .card {
+        border-radius: 15px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        border: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 12px 30px;
+        font-weight: bold;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .result-box {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+      }
+
+      .result-danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        color: white;
+      }
+
+      .result-warning {
+        background: linear-gradient(135deg, #ffd93d 0%, #ff9a3d 100%);
+        color: #333;
+      }
+
+      .result-success {
+        background: linear-gradient(135deg, #6bcf7f 0%, #4caf50 100%);
+        color: white;
+      }
+
+      .reason-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px 15px;
+        border-radius: 20px;
+        margin: 5px;
+        display: inline-block;
+      }
+
+      .loading {
+        display: none;
+      }
+
+      .google-result {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 10px;
+        border-right: 4px solid #4285f4;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- شريط التنقل -->
+    <nav
+      class="navbar navbar-expand-lg navbar-dark"
+      style="background: rgba(0, 0, 0, 0.2)"
+    >
+      <div class="container">
+        <a class="navbar-brand" href="/home"> 🔍 كشف الأخبار المزيفة - AI </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/home">الرئيسية</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/history">السجل</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/logout">تسجيل الخروج</a>
+            </li>
+          </ul>
+          <span class="navbar-text me-3"> مرحباً، {{ name }} </span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-10">
+          <div class="card shadow-lg">
+            <div class="card-header bg-white text-center py-4">
+              <h2 class="mb-0">
+                🔍 نظام كشف الأخبار المزيفة باستخدام الذكاء الاصطناعي
+              </h2>
+              <p class="text-muted mt-2">أدخل تفاصيل الخبر للتحقق من صحته</p>
+            </div>
+
+            <div class="card-body p-5">
+              <form id="detectionForm">
+                <div class="mb-4">
+                  <label class="form-label fw-bold">عنوان الخبر</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    id="title"
+                    name="title"
+                    placeholder="أدخل عنوان الخبر هنا..."
+                    required
+                  />
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label fw-bold">نص الخبر</label>
+                  <textarea
+                    class="form-control"
+                    id="text"
+                    name="text"
+                    rows="6"
+                    placeholder="أدخل نص الخبر الكامل هنا..."
+                  ></textarea>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label fw-bold">مصدر الخبر (اختياري)</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="source"
+                    name="source"
+                    placeholder="مثال: www.bbc.com"
+                  />
+                </div>
+
+                <div class="text-center">
+                  <button type="submit" class="btn btn-primary btn-lg">
+                    <span id="submitText">تحليل الخبر</span>
+                    <div
+                      class="spinner-border spinner-border-sm text-white loading"
+                      id="loadingSpinner"
+                      role="status"
+                    ></div>
+                  </button>
+                </div>
+              </form>
+
+              <!-- نتائج التحليل -->
+              <div id="resultContainer" class="mt-5" style="display: none">
+                <h3 class="mb-4">نتائج التحليل</h3>
+
+                <!-- النتيجة الرئيسية -->
+                <div id="mainResult" class="result-box text-center">
+                  <h2 id="resultTitle" class="mb-3"></h2>
+                  <div class="row justify-content-center">
+                    <div class="col-md-8">
+                      <div class="card">
+                        <div class="card-body">
+                          <h5 id="resultScore" class="card-title"></h5>
+                          <p id="resultConfidence" class="card-text"></p>
+                          <div id="resultReasons"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- نتائج Google Fact Check -->
+                <div id="googleResults" class="mt-4" style="display: none">
+                  <h4>نتائج التحقق من Google Fact Check</h4>
+                  <div id="googleResultsContent"></div>
+                </div>
+
+                <!-- نصيحة -->
+                <div class="alert alert-info mt-4">
+                  <h5>💡 نصيحة</h5>
+                  <p id="adviceText" class="mb-0"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-footer text-center text-muted py-3">
+              <small
+                >نظام كشف الأخبار المزيفة باستخدام الذكاء الاصطناعي | فريق
+                المشروع © 2025</small
+              >
+            </div>
+          </div>
+
+          <!-- معلومات النظام -->
+          <div class="row mt-4">
+            <div class="col-md-4">
+              <div class="card text-center h-100">
+                <div class="card-body">
+                  <h3>📊 قاعدة القواعد</h3>
+                  <p class="text-muted">تحليل النص بأكثر من 50 قاعدة للكشف</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-center h-100">
+                <div class="card-body">
+                  <h3>🔗 Google API</h3>
+                  <p class="text-muted">التكامل مع محرك التحقق من الحقائق</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-center h-100">
+                <div class="card-body">
+                  <h3>📈 تحليل ذكي</h3>
+                  <p class="text-muted">نظام هجين (AI بدون تعلم آلي)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document
+        .getElementById("detectionForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          // إظهار التحميل
+          document.getElementById("loadingSpinner").style.display =
+            "inline-block";
+          document.getElementById("submitText").textContent = "جاري التحليل...";
+
+          // جمع البيانات
+          const formData = new FormData(this);
+
+          try {
+            const response = await fetch("/detect", {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await response.json();
+
+            // إخفاء التحميل
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.getElementById("submitText").textContent = "تحليل الخبر";
+
+            // عرض النتائج
+            displayResults(data);
+          } catch (error) {
+            console.error("Error:", error);
+            alert("حدث خطأ أثناء التحليل");
+            document.getElementById("loadingSpinner").style.display = "none";
+            document.getElementById("submitText").textContent = "تحليل الخبر";
+          }
+        });
+
+      function displayResults(data) {
+        const resultContainer = document.getElementById("resultContainer");
+        const mainResult = document.getElementById("mainResult");
+        const resultTitle = document.getElementById("resultTitle");
+        const resultScore = document.getElementById("resultScore");
+        const resultConfidence = document.getElementById("resultConfidence");
+        const resultReasons = document.getElementById("resultReasons");
+        const googleResults = document.getElementById("googleResults");
+        const googleResultsContent = document.getElementById(
+          "googleResultsContent"
+        );
+        const adviceText = document.getElementById("adviceText");
+
+        // إظهار حاوية النتائج
+        resultContainer.style.display = "block";
+
+        // تعيين اللون حسب النتيجة
+        mainResult.className = `result-box text-center result-${data.color}`;
+
+        // تعيين النصوص
+        resultTitle.textContent = data.result;
+        resultScore.textContent = `درجة الثقة: ${data.score}%`;
+        resultConfidence.textContent = `مستوى الثقة: ${data.confidence}`;
+
+        // عرض الأسباب
+        resultReasons.innerHTML = '<h6 class="mt-3">أسباب التصنيف:</h6>';
+        if (data.reasons && data.reasons.length > 0) {
+          data.reasons.forEach((reason) => {
+            const reasonItem = document.createElement("span");
+            reasonItem.className = "reason-item";
+            reasonItem.textContent = reason;
+            resultReasons.appendChild(reasonItem);
+          });
+        }
+
+        // عرض نتائج Google إذا وجدت
+        if (data.google_results && data.google_results.length > 0) {
+          googleResults.style.display = "block";
+          googleResultsContent.innerHTML = "";
+
+          data.google_results.forEach((result, index) => {
+            const googleCard = document.createElement("div");
+            googleCard.className = "google-result mb-3";
+            googleCard.innerHTML = `
+                        <h6>${result.reviewer || "مصدر غير معروف"}</h6>
+                        <p class="mb-1"><strong>التقييم:</strong> ${
+                          result.rating || "غير متوفر"
+                        }</p>
+                        <p class="mb-1"><strong>المدعي:</strong> ${
+                          result.claimant || "غير معروف"
+                        }</p>
+                        ${
+                          result.url
+                            ? `<a href="${result.url}" target="_blank" class="btn btn-sm btn-info mt-2">عرض التفاصيل</a>`
+                            : ""
+                        }
+                    `;
+            googleResultsContent.appendChild(googleCard);
+          });
+        } else {
+          googleResults.style.display = "none";
+        }
+
+        // نصيحة بناءً على النتيجة
+        if (data.result.includes("مزيف")) {
+          adviceText.textContent =
+            "⚠️ هذا الخبر على الأرجح مزيف. يرجى التحقق من مصادر موثوقة قبل نشره.";
+        } else if (data.result.includes("مشبوه")) {
+          adviceText.textContent =
+            "🤔 هذا الخبر مشبوه. يفضل التحقق منه من مصادر أخرى قبل الاعتماد عليه.";
+        } else {
+          adviceText.textContent =
+            "✅ هذا الخبر يبدو حقيقياً. يمكنك مشاركته مع التحقق من تحديثاته.";
+        }
+
+        // التمرير للنتائج
+        resultContainer.scrollIntoView({ behavior: "smooth" });
+      }
+    </script>
+  </body>
+</html>
